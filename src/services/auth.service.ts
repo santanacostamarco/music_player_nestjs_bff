@@ -11,24 +11,65 @@ interface SpotfyApiTokenResponse {
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   private readonly clientId = process.env.SPOTFY_CLIENT_ID || '';
 
   private readonly clientSecret = process.env.SPOTFY_CLIENT_SECRET || '';
 
+  private readonly logger = new Logger(AuthService.name);
+
   private readonly redirectUri = process.env.SPOTFY_REDIRECT_URI || '';
 
-  private generateBasicToken() {
+  private readonly spotfyBaseUrl = process.env.SPOTFY_BASE_URL || '';
+
+  /**
+   * Requests the Spotfy access token.
+   * @param code - The code from Spotfy authorization.
+   * @returns The Spotfy authorization response.
+   * @throws {Error}
+   */
+  async authenticate(code: string): Promise<SpotfyApiTokenResponse> {
+    const body = new URLSearchParams({
+      code,
+      redirect_uri: this.redirectUri,
+      grant_type: 'authorization_code',
+    });
+
+    try {
+      const response = await fetch(`${this.spotfyBaseUrl}/api/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: 'Basic ' + this.generateBasicToken(),
+        },
+        body: body.toString(),
+      });
+
+      const data = (await response.json()) as SpotfyApiTokenResponse;
+
+      this.logger.log('Authorization performed successfully');
+      return data;
+    } catch (e: unknown) {
+      this.logger.error('Failed to authorize', e);
+      throw e;
+    }
+  }
+
+  /**
+   * Generates the basic token for the Authorization header.
+   * @returns The basic token.
+   */
+  private generateBasicToken(): string {
     return Buffer.from(`${this.clientId}:${this.clientSecret}`).toString(
       'base64',
     );
   }
 
-  getState(): string {
-    return uuid();
-  }
-
+  /**
+   * Builds the Spotify authorization URL with the required query parameters.
+   * @param state - A random string to prevent CSRF attacks.
+   * @param scope - The requested access scopes.
+   * @returns The Spotify authorization redirect URL.
+   */
   getLoginUrl(state: string, scope: string): string {
     const params = new URLSearchParams({
       response_type: 'code',
@@ -40,29 +81,14 @@ export class AuthService {
 
     this.logger.log('Generated the spotfy login url');
 
-    return `https://accounts.spotify.com/authorize?${params.toString()}`;
+    return `${this.spotfyBaseUrl}/authorize?${params.toString()}`;
   }
 
-  async authenticate(code: string): Promise<SpotfyApiTokenResponse> {
-    const body = new URLSearchParams({
-      code,
-      redirect_uri: this.redirectUri,
-      grant_type: 'authorization_code',
-    });
-
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: 'Basic ' + this.generateBasicToken(),
-      },
-      body: body.toString(),
-    });
-
-    const data = (await response.json()) as SpotfyApiTokenResponse;
-
-    this.logger.log('Authorization performed successfully');
-
-    return data;
+  /**
+   * Generates a random string for the Spotify login state parameter to prevent CSRF attacks.
+   * @returns A unique random state string.
+   */
+  getState(): string {
+    return uuid();
   }
 }
