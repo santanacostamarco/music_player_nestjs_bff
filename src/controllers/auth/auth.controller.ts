@@ -26,6 +26,9 @@ export class AuthController {
       });
     }
     const authData = await this.authService.authenticate(code);
-    res.json({ message: 'Code received', authData });
+    res.setHeader('set-cookie', [
+      `access_token=${authData.access_token}; SameSite=None; Max-Age=60; Path=/; Domain=localhost;`,
+    ]);
+    res.redirect(`http://localhost:3000`);
   }
 }
