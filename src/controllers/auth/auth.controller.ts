@@ -42,9 +42,7 @@ export class AuthController {
 
   @Get('login')
   login(@Res() res: Response) {
-    const state = this.authService.getState();
-    const scope = 'user-read-private user-read-email';
-    const url = this.authService.getLoginUrl(state, scope);
+    const url = this.authService.getLoginUrl();
     res.json({
       url,
     });

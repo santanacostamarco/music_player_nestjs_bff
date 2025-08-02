@@ -1,5 +1,5 @@
+import { SpotfyService } from '@/common/services/spotfy.service';
 import { Injectable, Logger } from '@nestjs/common';
-import { v4 as uuid } from 'uuid';
 
 interface SpotfyApiTokenResponse {
   access_token: string;
@@ -15,22 +15,7 @@ interface SpotfyApiTokenResponse {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  private readonly SPOTFY_BASE_URL = process.env.SPOTFY_BASE_URL || '';
-
-  private readonly SPOTFY_CLIENT_ID = process.env.SPOTFY_CLIENT_ID || '';
-
-  private readonly SPOTFY_CLIENT_SECRET =
-    process.env.SPOTFY_CLIENT_SECRET || '';
-
-  private readonly SPOTFY_REDIRECT_URI = process.env.SPOTFY_REDIRECT_URI || '';
-
-  get SPOTFY_API_TOKEN_URL() {
-    return `${this.SPOTFY_BASE_URL}/api/token`;
-  }
-
-  get SPOTFY_AUTHORIZE_PAGE_URL() {
-    return `${this.SPOTFY_BASE_URL}/authorize`;
-  }
+  constructor(private readonly spotfyService: SpotfyService) {}
 
   /**
    * Requests the Spotfy access token.
@@ -41,15 +26,15 @@ export class AuthService {
   async authenticate(code: string): Promise<SpotfyApiTokenResponse> {
     const body = new URLSearchParams({
       code,
-      redirect_uri: this.SPOTFY_REDIRECT_URI,
+      redirect_uri: this.spotfyService.redirectUri,
       grant_type: 'authorization_code',
     });
 
-    const response = await fetch(this.SPOTFY_API_TOKEN_URL, {
+    const response = await fetch(this.spotfyService.apiTokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: 'Basic ' + this.generateBasicToken(),
+        Authorization: 'Basic ' + this.spotfyService.generateBasicToken(),
       },
       body: body.toString(),
     });
@@ -67,41 +52,27 @@ export class AuthService {
   }
 
   /**
-   * Generates the basic token for the Authorization header.
-   * @returns The basic token.
-   */
-  private generateBasicToken(): string {
-    return Buffer.from(
-      `${this.SPOTFY_CLIENT_ID}:${this.SPOTFY_CLIENT_SECRET}`,
-    ).toString('base64');
-  }
-
-  /**
    * Builds the Spotify authorization URL with the required query parameters.
-   * @param state - A random string to prevent CSRF attacks.
-   * @param scope - The requested access scopes.
    * @returns The Spotify authorization redirect URL.
    */
-  getLoginUrl(state: string, scope: string): string {
+  getLoginUrl(): string {
+    const {
+      authorizationScopes: scope,
+      clientId: client_id,
+      redirectUri: redirect_uri,
+    } = this.spotfyService;
+
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: this.SPOTFY_CLIENT_ID,
+      client_id,
       scope,
-      redirect_uri: this.SPOTFY_REDIRECT_URI,
-      state,
+      redirect_uri,
+      state: this.spotfyService.getState(),
     });
 
     this.logger.log('Generated the spotfy login url.');
 
-    return this.SPOTFY_AUTHORIZE_PAGE_URL + '?' + params.toString();
-  }
-
-  /**
-   * Generates a random string for the Spotify login state parameter to prevent CSRF attacks.
-   * @returns A unique random state string.
-   */
-  getState(): string {
-    return uuid();
+    return this.spotfyService.authorizePageUrl + '?' + params.toString();
   }
 
   /**
@@ -113,10 +84,10 @@ export class AuthService {
     const body = new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: this.SPOTFY_CLIENT_ID,
+      client_id: this.spotfyService.clientId,
     });
 
-    const response = await fetch(this.SPOTFY_API_TOKEN_URL, {
+    const response = await fetch(this.spotfyService.apiTokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
