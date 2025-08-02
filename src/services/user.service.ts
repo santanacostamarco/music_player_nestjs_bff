@@ -23,22 +23,73 @@ export class UserService {
       },
     );
 
-    type ResponseType = ArtistsInterface.Root & SpotfyErrorInterface.Root;
+    type ResponseType = UserArtistsInterface.Root & SpotfyErrorInterface.Root;
     const { artists, error } = (await response.json()) as ResponseType;
 
     if (response.status >= 400) {
-      this.logger.error(
-        `Failed to fetch following artists: ${error?.message}.`,
-      );
-      throw new Error(error?.message);
+      const message = `Failed to fetch the following artists: ${error?.message}.`;
+      this.logger.error(message);
+      throw new Error(message);
     }
 
+    this.logger.log('User following artists fetched successfully.');
     return {
       artists,
     };
   }
 
-  async getUsersTop(type: 'artists' | 'tracks', accessToken: string) {
+  async getPlaylists(accessToken: string) {
+    const { apiBaseUrl } = this.spotfyService;
+
+    const search = new URLSearchParams();
+    search.append('limit', '5');
+    // search.append('offset', '0')
+
+    const response = await fetch(
+      `${apiBaseUrl}/me/playlists?${search.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    type ResponseType = UserPlaylistsInterface.Root & SpotfyErrorInterface.Root;
+    const { error, items: playlists } = (await response.json()) as ResponseType;
+
+    if (response.status >= 400) {
+      const message = `Failed to fetch user's playlists: ${error?.message}`;
+      this.logger.error(message);
+      throw new Error(message);
+    }
+
+    this.logger.log("User's playlists fetched successfully.");
+    return { playlists };
+  }
+
+  async getProfile(accessToken: string) {
+    const { apiBaseUrl } = this.spotfyService;
+
+    const response = await fetch(`${apiBaseUrl}/me`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    type ResponseType = UserProfileInterface.Root & SpotfyErrorInterface.Root;
+    const { error, ...profile } = (await response.json()) as ResponseType;
+
+    if (response.status >= 400) {
+      const message = `Failed to fetch the user profile: ${error?.message}`;
+      this.logger.error(message);
+      throw new Error(message);
+    }
+
+    this.logger.log('User profile fetched successfully.');
+    return profile;
+  }
+
+  async getTop(type: 'artists' | 'tracks', accessToken: string) {
     const { apiBaseUrl } = this.spotfyService;
 
     const search = new URLSearchParams();
@@ -54,17 +105,17 @@ export class UserService {
       },
     );
 
-    type ResponseType = TopArtistsAndTacksInterface.Root &
+    type ResponseType = UserTopArtistsAndTacksInterface.Root &
       SpotfyErrorInterface.Root;
     const { items, error } = (await response.json()) as ResponseType;
 
     if (response.status >= 400) {
-      this.logger.error(
-        `Failed to fetch following artists: ${error?.message}.`,
-      );
-      throw new Error(error?.message);
+      const message = `Failed to fetch following artists: ${error?.message}.`;
+      this.logger.error(message);
+      throw new Error(message);
     }
 
+    this.logger.log(`User's top ${type} fetched successfully.`);
     return {
       items,
     };

@@ -1,6 +1,7 @@
 import { UserService } from '@/services/user.service';
 import { Response } from 'express';
 import { Controller, Res, Get, Headers } from '@nestjs/common';
+import { HEADERS } from '@/common/enum/headers';
 
 @Controller('user')
 export class UserController {
@@ -8,7 +9,7 @@ export class UserController {
 
   @Get('artists')
   async getArtists(
-    @Headers('Gtw-Access-Token') accessToken: string,
+    @Headers(HEADERS.ACCESS_TOKEN) accessToken: string,
     @Res() res: Response,
   ) {
     try {
@@ -25,18 +26,61 @@ export class UserController {
           error: e.message,
         });
       } else {
-        res.json(e);
+        res.send(e);
       }
+    }
+  }
+
+  @Get('playlists')
+  async getPlaylists(
+    @Headers(HEADERS.ACCESS_TOKEN) accessToken: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const { playlists } = await this.userService.getPlaylists(accessToken);
+      res.json({
+        playlists,
+      });
+    } catch (e) {
+      res.status(500);
+      if (e instanceof Error) {
+        res.json({
+          error: e.message,
+        });
+      } else {
+        res.send(e);
+      }
+    }
+  }
+
+  @Get('profile')
+  async getProfile(
+    @Headers(HEADERS.ACCESS_TOKEN) accessToken: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const profile = await this.userService.getProfile(accessToken);
+      res.json({
+        profile,
+      });
+    } catch (e: unknown) {
+      res.status(500);
+      if (e instanceof Error) {
+        res.json({
+          error: e.message,
+        });
+      }
+      res.send(e);
     }
   }
 
   @Get('top-artists')
   async getTopArtists(
-    @Headers('Gtw-Access-Token') accessToken: string,
+    @Headers(HEADERS.ACCESS_TOKEN) accessToken: string,
     @Res() res: Response,
   ) {
     try {
-      const { items: artists } = await this.userService.getUsersTop(
+      const { items: artists } = await this.userService.getTop(
         'artists',
         accessToken,
       );
@@ -51,18 +95,18 @@ export class UserController {
           error: e.message,
         });
       } else {
-        res.json(e);
+        res.send(e);
       }
     }
   }
 
   @Get('top-tracks')
   async getTopTracks(
-    @Headers('Gtw-Access-Token') accessToken: string,
+    @Headers(HEADERS.ACCESS_TOKEN) accessToken: string,
     @Res() res: Response,
   ) {
     try {
-      const { items: tracks } = await this.userService.getUsersTop(
+      const { items: tracks } = await this.userService.getTop(
         'tracks',
         accessToken,
       );
@@ -77,7 +121,7 @@ export class UserController {
           error: e.message,
         });
       } else {
-        res.json(e);
+        res.send(e);
       }
     }
   }

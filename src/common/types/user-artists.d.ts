@@ -1,4 +1,4 @@
-namespace ArtistsInterface {
+namespace UserArtistsInterface {
   interface Root {
     artists: Artists;
   }

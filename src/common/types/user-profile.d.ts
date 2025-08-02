@@ -1,25 +1,22 @@
-namespace TopArtistsAndTacksInterface {
+namespace UserProfileInterface {
   interface Root {
-    href: string;
-    limit: number;
-    next: string;
-    offset: number;
-    previous: string;
-    total: number;
-    items: Item[];
-  }
-
-  interface Item {
+    country: string;
+    display_name: string;
+    email: string;
+    explicit_content: ExplicitContent;
     external_urls: ExternalUrls;
     followers: Followers;
-    genres: string[];
     href: string;
     id: string;
     images: Image[];
-    name: string;
-    popularity: number;
+    product: string;
     type: string;
     uri: string;
+  }
+
+  interface ExplicitContent {
+    filter_enabled: boolean;
+    filter_locked: boolean;
   }
 
   interface ExternalUrls {
