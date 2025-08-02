@@ -37,4 +37,36 @@ export class UserService {
       artists,
     };
   }
+
+  async getUsersTop(type: 'artists' | 'tracks', accessToken: string) {
+    const { apiBaseUrl } = this.spotfyService;
+
+    const search = new URLSearchParams();
+    search.append('limit', '5');
+    // search.append('offset', '0')
+
+    const response = await fetch(
+      `${apiBaseUrl}/me/top/${type}?${search.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    type ResponseType = TopArtistsAndTacksInterface.Root &
+      SpotfyErrorInterface.Root;
+    const { items, error } = (await response.json()) as ResponseType;
+
+    if (response.status >= 400) {
+      this.logger.error(
+        `Failed to fetch following artists: ${error?.message}.`,
+      );
+      throw new Error(error?.message);
+    }
+
+    return {
+      items,
+    };
+  }
 }
