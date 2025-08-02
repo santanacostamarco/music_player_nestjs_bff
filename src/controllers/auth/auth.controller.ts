@@ -7,11 +7,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Get('login')
-  login(@Res() res: Response) {
+  login() {
     const state = this.authService.getState();
     const scope = 'user-read-private user-read-email';
     const url = this.authService.getLoginUrl(state, scope);
-    res.redirect(url);
+    return { url };
   }
 
   @Get('callback')
@@ -25,10 +25,12 @@ export class AuthController {
         error: 'state_missmatch',
       });
     }
-    const authData = await this.authService.authenticate(code);
-    res.setHeader('set-cookie', [
-      `access_token=${authData.access_token}; SameSite=None; Max-Age=60; Path=/; Domain=localhost;`,
-    ]);
-    res.redirect(`http://localhost:3000`);
+    const { access_token, expires_in } =
+      await this.authService.authenticate(code);
+
+    return {
+      access_token,
+      expires_in,
+    };
   }
 }
