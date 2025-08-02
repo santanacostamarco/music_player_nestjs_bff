@@ -7,19 +7,30 @@ interface SpotfyApiTokenResponse {
   expires_in: number;
   refresh_token?: string;
   scope?: string;
+  error?: string;
+  error_description?: string;
 }
 
 @Injectable()
 export class AuthService {
-  private readonly clientId = process.env.SPOTFY_CLIENT_ID || '';
-
-  private readonly clientSecret = process.env.SPOTFY_CLIENT_SECRET || '';
-
   private readonly logger = new Logger(AuthService.name);
 
-  private readonly redirectUri = process.env.SPOTFY_REDIRECT_URI || '';
+  private readonly SPOTFY_BASE_URL = process.env.SPOTFY_BASE_URL || '';
 
-  private readonly spotfyBaseUrl = process.env.SPOTFY_BASE_URL || '';
+  private readonly SPOTFY_CLIENT_ID = process.env.SPOTFY_CLIENT_ID || '';
+
+  private readonly SPOTFY_CLIENT_SECRET =
+    process.env.SPOTFY_CLIENT_SECRET || '';
+
+  private readonly SPOTFY_REDIRECT_URI = process.env.SPOTFY_REDIRECT_URI || '';
+
+  get SPOTFY_API_TOKEN_URL() {
+    return `${this.SPOTFY_BASE_URL}/api/token`;
+  }
+
+  get SPOTFY_AUTHORIZE_PAGE_URL() {
+    return `${this.SPOTFY_BASE_URL}/authorize`;
+  }
 
   /**
    * Requests the Spotfy access token.
@@ -30,28 +41,29 @@ export class AuthService {
   async authenticate(code: string): Promise<SpotfyApiTokenResponse> {
     const body = new URLSearchParams({
       code,
-      redirect_uri: this.redirectUri,
+      redirect_uri: this.SPOTFY_REDIRECT_URI,
       grant_type: 'authorization_code',
     });
 
-    try {
-      const response = await fetch(`${this.spotfyBaseUrl}/api/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: 'Basic ' + this.generateBasicToken(),
-        },
-        body: body.toString(),
-      });
+    const response = await fetch(this.SPOTFY_API_TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: 'Basic ' + this.generateBasicToken(),
+      },
+      body: body.toString(),
+    });
 
-      const data = (await response.json()) as SpotfyApiTokenResponse;
+    const data = (await response.json()) as SpotfyApiTokenResponse;
 
-      this.logger.log('Authorization performed successfully');
-      return data;
-    } catch (e: unknown) {
-      this.logger.error('Failed to authorize', e);
-      throw e;
+    if (response.status === 400) {
+      const message = `Failed to authorize: ${data.error_description}.`;
+      this.logger.error(message);
+      throw new Error(message);
     }
+
+    this.logger.log('Authorization performed successfully.');
+    return data;
   }
 
   /**
@@ -59,9 +71,9 @@ export class AuthService {
    * @returns The basic token.
    */
   private generateBasicToken(): string {
-    return Buffer.from(`${this.clientId}:${this.clientSecret}`).toString(
-      'base64',
-    );
+    return Buffer.from(
+      `${this.SPOTFY_CLIENT_ID}:${this.SPOTFY_CLIENT_SECRET}`,
+    ).toString('base64');
   }
 
   /**
@@ -73,15 +85,15 @@ export class AuthService {
   getLoginUrl(state: string, scope: string): string {
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: this.clientId,
+      client_id: this.SPOTFY_CLIENT_ID,
       scope,
-      redirect_uri: this.redirectUri,
+      redirect_uri: this.SPOTFY_REDIRECT_URI,
       state,
     });
 
-    this.logger.log('Generated the spotfy login url');
+    this.logger.log('Generated the spotfy login url.');
 
-    return `${this.spotfyBaseUrl}/authorize?${params.toString()}`;
+    return this.SPOTFY_AUTHORIZE_PAGE_URL + '?' + params.toString();
   }
 
   /**
@@ -90,5 +102,36 @@ export class AuthService {
    */
   getState(): string {
     return uuid();
+  }
+
+  /**
+   * Refreshes the Spotfy access token.
+   * @param refreshToken - The strored refresh token.
+   * @returns The Spotfy authorization response.
+   */
+  async refresh(refreshToken: string): Promise<SpotfyApiTokenResponse> {
+    const body = new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: this.SPOTFY_CLIENT_ID,
+    });
+
+    const response = await fetch(this.SPOTFY_API_TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+    });
+    const data = (await response.json()) as SpotfyApiTokenResponse;
+
+    if (response.status === 400) {
+      const message = `Failed to refresh authorization: ${data.error_description}.`;
+      this.logger.error(message);
+      throw new Error(message);
+    }
+
+    this.logger.log('Authorization refreshed successfully.');
+    return data;
   }
 }

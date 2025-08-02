@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '@/modules/app.module';
+import { AppModule } from '@/app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -17,13 +17,13 @@ bootstrap()
   .then(() => {
     console.log(
       `${Colors.GREEN}%s${Colors.RESET}`,
-      'App bootstrapped successfully! 🚀',
+      'App bootstrapped successfully!',
     );
   })
   .catch((err) => {
     console.error(
       `${Colors.RED}%s${Colors.RESET}`,
-      'Failed to bootstrap the app. 💥',
+      'Failed to bootstrap the app',
     );
     console.error(`${Colors.GRAY}%s${Colors.RESET}`, err);
   });
