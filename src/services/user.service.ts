@@ -1,3 +1,4 @@
+import { CreatePlaylistDto } from '@/common/dto/create-playlist.dto';
 import { SpotfyService } from '@/common/services/spotfy.service';
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -118,6 +119,43 @@ export class UserService {
     this.logger.log(`User's top ${type} fetched successfully.`);
     return {
       items,
+    };
+  }
+
+  async createPlaylist(
+    createPlaylistDto: CreatePlaylistDto,
+    accessToken: string,
+  ) {
+    const { apiBaseUrl } = this.spotfyService;
+    const { userId, ...body } = createPlaylistDto;
+
+    const search = new URLSearchParams();
+    search.append('limit', '5');
+    // search.append('offset', '0')
+
+    const response = await fetch(
+      `${apiBaseUrl}/users/${userId}/playlists?${search.toString()}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(body),
+      },
+    );
+
+    type ResponseType = CreatePlaylistResponseInterface.Root &
+      SpotfyErrorInterface.Root;
+    const { error, id } = (await response.json()) as ResponseType;
+
+    if (response.status >= 400) {
+      const message = `Faild to create playlist: ${error?.message}`;
+      this.logger.error(message);
+      throw new Error(message);
+    }
+
+    return {
+      id,
     };
   }
 }

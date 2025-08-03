@@ -33,6 +33,8 @@ export class SpotfyService {
     'user-read-email',
     'user-follow-read',
     'user-top-read',
+    'playlist-modify-public',
+    'playlist-modify-private',
   ];
 
   /**

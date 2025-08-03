@@ -1,7 +1,8 @@
 import { UserService } from '@/services/user.service';
 import { Response } from 'express';
-import { Controller, Res, Get, Headers } from '@nestjs/common';
+import { Controller, Res, Get, Post, Headers, Body } from '@nestjs/common';
 import { HEADERS } from '@/common/enum/headers';
+import { CreatePlaylistDto } from '@/common/dto/create-playlist.dto';
 
 @Controller('user')
 export class UserController {
@@ -113,6 +114,33 @@ export class UserController {
 
       res.json({
         tracks,
+      });
+    } catch (e: unknown) {
+      res.status(500);
+      if (e instanceof Error) {
+        res.json({
+          error: e.message,
+        });
+      } else {
+        res.send(e);
+      }
+    }
+  }
+
+  @Post('playlists/new')
+  async newPlaylist(
+    @Body() body: CreatePlaylistDto,
+    @Headers(HEADERS.ACCESS_TOKEN) accessToken: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const { id: playlistId } = await this.userService.createPlaylist(
+        body,
+        accessToken,
+      );
+
+      res.json({
+        playlistId,
       });
     } catch (e: unknown) {
       res.status(500);
