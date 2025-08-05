@@ -1,0 +1,41 @@
+name: Build Nest.js BFF
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.1' 
+          
+      - name: Instalar dependências
+        run: npm ci --omit-dev
+
+      - name: Rodar build
+        run: npm run build
+      
+      - name: Compactar pasta dist + package.json + node_modules
+        run: |
+          mkdir output
+          cp package.json output/
+          cp -r dist output/
+          npm ci --omit=dev --prefix output
+          cd output
+          zip -r ../nestjs-build.zip .
+
+      - name: Salvar artefato (nestjs-build.zip)
+        uses: actions/upload-artifact@v4
+        with:
+          name: nestjs-build
+          path: nestjs-build.zip
