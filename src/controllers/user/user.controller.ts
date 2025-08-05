@@ -14,8 +14,10 @@ export class UserController {
     @Res() res: Response,
   ) {
     try {
-      const { artists } =
-        await this.userService.getFollowingArtists(accessToken);
+      const { items: artists } = await this.userService.getTop(
+        'artists',
+        accessToken,
+      );
 
       res.json({
         artists,
