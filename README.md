@@ -12,7 +12,7 @@ $ npm install
 
 ### 2. Configure as variáveis de ambiente
 
-Para rodar a aplicação em modo desenvolvimento, é necessário adicionar algumas variáveis de ambinte.
+Para rodar a aplicação em modo desenvolvimento, é necessário adicionar algumas variáveis de ambiente.
 
 Crie um arquivo `.env` na raiz deste projeto.
 
@@ -23,7 +23,7 @@ Adicione as variáveis abaixo preenchendo os valores para as variáveis `SPOTFY_
 
 SPOTFY_CLIENT_ID=
 SPOTFY_CLIENT_SECRET=
-SPOTFY_REDIRECT_URI=
+SPOTFY_REDIRECT_URI=http://127.0.0.1:3000/callback
 SPOTFY_ACCOUNTS_URL=https://accounts.spotify.com
 SPOTFY_API_URL=https://api.spotify.com/v1
 PORT=3001
