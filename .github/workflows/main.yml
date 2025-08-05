@@ -30,7 +30,7 @@ jobs:
           mkdir output
           cp package.json output/
           cp -r dist output/
-          npm ci --omit=dev --prefix output
+          cp node_modules output
           cd output
           zip -r ../nestjs-build.zip .
 
