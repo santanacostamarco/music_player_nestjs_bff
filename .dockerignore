@@ -1,0 +1,12 @@
+node_modules
+dist
+test
+
+Dockerfile
+.dockerignore
+.git
+.gitignore
+README.md
+.prettier*
+eslint*
+jest*

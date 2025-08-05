@@ -1,12 +1,34 @@
+FROM node:22.17.1 AS deps
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+
+RUN npm ci --omit-dev
+
 FROM node:22.17.1 AS builder
 
 WORKDIR /app
 
-COPY ./src ./src
-COPY ./package.json ./package.json
-COPY ./package-lock.json ./package-lock.json
-COPY ./nest-cli.json ./nest-cli.json
-COPY ./tsconfig.json ./tsconfig.json
-COPY ./tsconfig.build.json ./tsconfig.build.json
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
-RUN npm i
+ENV NODE_ENV=production
+
+RUN npm run build
+
+FROM node:22.17.1 AS runner
+
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/.env .env
+
+ENV NODE_ENV=production
+
+CMD ["npm", "run", "start:prod"]
+
+
+
